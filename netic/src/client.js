@@ -1,6 +1,6 @@
 import axios from "axios";
 import { getApiKey } from "./config.js";
-import { createFormData, isValidApiKey, formatHistory } from "./utils.js";
+import { createFormData, createImageFormData, isValidApiKey, formatHistory } from "./utils.js";
 
 const API_URL = "https://netic.jtheberg.cloud/api/v1/chat";
 
@@ -105,6 +105,64 @@ export class NeticClient {
     }
 
     /**
+     * Upload une image et obtient une analyse par IA
+     * @param {Object} options - Options de l'upload
+     * @param {File|Buffer|string} options.image - Fichier image
+     * @param {string} [options.prompt] - Question ou instruction personnalisée pour l'analyse IA
+     * @returns {Promise<Object>} Réponse de l'API avec l'analyse
+     */
+    async uploadImage({ image, prompt }) {
+        if (!this.apiKey) {
+            throw new Error("API key not set. Provide it in constructor or use setApiKey()");
+        }
+
+        if (!image) {
+            throw new Error("Image file is required for uploadImage");
+        }
+
+        const imageUrl = this.baseUrl.replace('/chat', '/image');
+
+        try {
+            const formData = createImageFormData({ image, prompt });
+
+            const response = await axios.post(imageUrl, formData, {
+                headers: {
+                    Authorization: `Bearer ${this.apiKey}`,
+                    ...formData.getHeaders(),
+                },
+                timeout: 60000, // Timeout plus long pour les uploads
+            });
+
+            return response.data;
+
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    }
+
+    /**
+     * Vérifie le statut de l'API d'upload d'images
+     * @returns {Promise<Object>} Statut de l'API
+     */
+    async getImageStatus() {
+        const imageUrl = this.baseUrl.replace('/chat', '/image');
+
+        try {
+            const response = await axios.get(imageUrl, {
+                headers: {
+                    Authorization: `Bearer ${this.apiKey}`,
+                },
+                timeout: 10000,
+            });
+
+            return response.data;
+
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    }
+
+    /**
      * Vide l'historique de conversation interne
      */
     clearHistory() {
@@ -162,4 +220,27 @@ export async function chat(message, apiKey = null, history = null) {
 export async function chatWithAudio(options, apiKey = null) {
     const client = new NeticClient(apiKey);
     return client.chatWithAudio(options);
+}
+
+/**
+ * Upload une image et obtient une analyse par IA (fonction utilitaire)
+ * @param {Object} options - Options de l'upload
+ * @param {File|Buffer|string} options.image - Fichier image
+ * @param {string} [options.prompt] - Question ou instruction personnalisée
+ * @param {string} [apiKey] - Clé API (optionnel si configurée globalement)
+ * @returns {Promise<Object>} Réponse de l'API avec l'analyse
+ */
+export async function uploadImage(options, apiKey = null) {
+    const client = new NeticClient(apiKey);
+    return client.uploadImage(options);
+}
+
+/**
+ * Vérifie le statut de l'API d'upload d'images (fonction utilitaire)
+ * @param {string} [apiKey] - Clé API (optionnel si configurée globalement)
+ * @returns {Promise<Object>} Statut de l'API
+ */
+export async function getImageStatus(apiKey = null) {
+    const client = new NeticClient(apiKey);
+    return client.getImageStatus();
 }

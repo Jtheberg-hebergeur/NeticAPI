@@ -13,6 +13,7 @@ npm install netic
 - ✅ Chat texte simple
 - ✅ Support de l'historique de conversation
 - ✅ Envoi de fichiers audio (premium)
+- ✅ Upload et analyse d'images par IA
 - ✅ Gestion automatique du quota
 - ✅ Gestion robuste des erreurs
 - ✅ Configuration persistente de la clé API
@@ -124,6 +125,61 @@ try {
 }
 ```
 
+### Upload et analyse d'images
+
+```javascript
+import { NeticClient } from 'netic';
+
+const client = new NeticClient("netic_votre_api_key");
+
+try {
+    const response = await client.uploadImage({
+        image: "/chemin/vers/image.jpg",
+        prompt: "Décris cette image en détail"
+    });
+
+    console.log("Image uploadée:", response.imageUrl);
+    console.log("Analyse IA:", response.analysis);
+} catch (error) {
+    console.error("Erreur:", error.message);
+}
+```
+
+### Vérifier le statut de l'API images
+
+```javascript
+try {
+    const status = await client.getImageStatus();
+    console.log("API prête:", status.enabled);
+    console.log("Taille max:", status.maxSizeMB, "MB");
+    console.log("Formats supportés:", status.allowedTypes.join(', '));
+} catch (error) {
+    console.error("Erreur:", error.message);
+}
+```
+
+### Exemples de prompts personnalisés
+
+```javascript
+// Questions sur le contenu
+await client.uploadImage({
+    image: "photo.jpg",
+    prompt: "Combien de personnes vois-tu ?"
+});
+
+// Analyse spécialisée
+await client.uploadImage({
+    image: "graphique.png",
+    prompt: "Analyse ce graphique et donne-moi les tendances"
+});
+
+// Instructions spécifiques
+await client.uploadImage({
+    image: "peinture.jpg",
+    prompt: "Agis comme un expert en art et analyse cette peinture"
+});
+```
+
 ## API complète
 
 ### NeticClient
@@ -135,6 +191,8 @@ try {
 - `setApiKey(key: string)` - Définit la clé API
 - `chat(message: string, history?: Array): Promise<Object>` - Chat texte
 - `chatWithAudio(options: Object): Promise<Object>` - Chat avec audio
+- `uploadImage(options: Object): Promise<Object>` - Upload et analyse d'image
+- `getImageStatus(): Promise<Object>` - Statut de l'API images
 - `getHistory(): Array` - Récupère l'historique
 - `clearHistory()` - Vide l'historique
 
@@ -142,13 +200,18 @@ try {
 
 - `chat(message, apiKey?, history?)` - Chat simple
 - `chatWithAudio(options, apiKey?)` - Chat audio simple
+- `uploadImage(options, apiKey?)` - Upload d'image simple
+- `getImageStatus(apiKey?)` - Statut API images simple
 - `setApiKey(key)` - Sauvegarde la clé API
 - `getApiKey()` - Récupère la clé API
 - `clearApiKey()` - Supprime la clé API
 - `isValidApiKey(key)` - Valide le format de la clé
 - `formatHistory(history)` - Formate l'historique
+- `createImageFormData(data)` - Crée FormData pour images
 
 ## Réponse API
+
+### Réponse Chat/Audio
 
 ```javascript
 {
@@ -160,6 +223,34 @@ try {
     },
     user: "Nom utilisateur",
     audio_url: "/uploads/audio/..." // optionnel
+}
+```
+
+### Réponse Upload Image
+
+```javascript
+{
+    success: true,
+    imageUrl: "/uploads/images/abc123_image.jpg",
+    fileName: "abc123_image.jpg",
+    size: 245760,
+    type: "image/jpeg",
+    uploadedAt: "2025-01-20T10:30:00.000Z",
+    prompt: "Décris cette image en détail",
+    analysis: "Description détaillée de l'image générée par l'IA..."
+}
+```
+
+### Réponse Statut API Images
+
+```javascript
+{
+    status: "ready",
+    enabled: true,
+    publicApiEnabled: true,
+    maxSize: 5242880,
+    allowedTypes: ["jpeg", "jpg", "png", "webp"],
+    maxSizeMB: 5
 }
 ```
 
@@ -189,6 +280,7 @@ Voir le dossier `/examples` pour des exemples complets :
 
 - `examples/basic.js` - Utilisation de base
 - `examples/audio.js` - Support audio
+- `examples/image.js` - Upload et analyse d'images
 - `examples/advanced.js` - Fonctionnalités avancées
 
 ## Configuration

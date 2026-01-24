@@ -50,11 +50,43 @@ export function isValidApiKey(apiKey) {
  */
 export function formatHistory(history) {
     if (!Array.isArray(history)) return [];
-    
-    return history.filter(msg => 
-        msg && 
-        typeof msg === 'object' && 
-        ['user', 'assistant'].includes(msg.role) && 
+
+    return history.filter(msg =>
+        msg &&
+        typeof msg === 'object' &&
+        ['user', 'assistant'].includes(msg.role) &&
         typeof msg.content === 'string'
     );
+}
+
+/**
+ * Crée un objet FormData pour l'upload d'images
+ * @param {Object} data - Données à formater
+ * @param {File|Buffer|string} data.image - Fichier image
+ * @param {string} [data.prompt] - Question ou instruction personnalisée
+ * @returns {FormData}
+ */
+export function createImageFormData({ image, prompt }) {
+    const formData = new FormData();
+
+    // Gestion du fichier image
+    if (Buffer.isBuffer(image)) {
+        // Buffer (Node.js)
+        formData.append('image', image, 'image.jpg');
+    } else if (typeof image === 'string') {
+        // Chemin de fichier
+        const fileBuffer = fs.readFileSync(image);
+        const fileName = image.split('/').pop() || 'image.jpg';
+        formData.append('image', fileBuffer, fileName);
+    } else {
+        // Objet File ou similaire (navigateur)
+        formData.append('image', image);
+    }
+
+    // Prompt optionnel
+    if (prompt && typeof prompt === 'string') {
+        formData.append('prompt', prompt);
+    }
+
+    return formData;
 }

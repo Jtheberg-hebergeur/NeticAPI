@@ -1,11 +1,11 @@
 {
   "name": "netic-api",
   "version": "1.0.0",
-  "description": "Package Node.js pour discuter avec Netic API",
+  "description": "Package Node.js pour discuter avec Netic API - Chat, audio et analyse d'images par IA",
   "main": "src/index.js",
   "type": "module",
   "scripts": {},
-  "keywords": ["chat", "netic", "api", "client", "ai", "audio"],
+  "keywords": ["chat", "netic", "api", "client", "ai", "audio", "image", "vision", "ocr", "analysis"],
   "author": "jtheberg",
   "license": "Jtheberg License use",
   "dependencies": {
