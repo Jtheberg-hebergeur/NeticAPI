@@ -5,7 +5,7 @@ Un client Node.js moderne et complet pour communiquer avec l'API Netic AI.
 ## Installation
 
 ```bash
-npm install netic
+npm install netic-api
 ```
 
 ## Features
