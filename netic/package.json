@@ -1,7 +1,7 @@
 {
   "name": "netic-api",
   "version": "1.0.1",
-  "description": "Package Node.js pour discuter avec Netic API - Chat, audio et analyse d'images par IA",
+  "description": "Package Node.js pour utilisé l'api de Netic | https://netic.ai",
   "main": "src/index.js",
   "type": "module",
   "scripts": {},

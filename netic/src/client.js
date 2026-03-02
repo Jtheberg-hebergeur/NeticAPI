@@ -2,13 +2,27 @@ import axios from "axios";
 import { getApiKey } from "./config.js";
 import { createFormData, createImageFormData, isValidApiKey, formatHistory } from "./utils.js";
 
-const API_URL = "https://netic.jtheberg.cloud/api/v1/chat";
+const API_BASE_URL = "https://api.neticai.fr/v1";
+
+const API_ENDPOINTS = {
+    chat: `${API_BASE_URL}/chat`,
+    voice: `${API_BASE_URL}/voice`,
+    image: `${API_BASE_URL}/image`,
+    usage: `${API_BASE_URL}/usage`
+};
 
 export class NeticClient {
     constructor(apiKey = null) {
         this.apiKey = apiKey || getApiKey();
-        this.baseUrl = API_URL;
+        this.baseUrl = API_BASE_URL;
+        this.endpoints = API_ENDPOINTS;
         this.history = [];
+        this.timeout = {
+            chat: 30000,
+            voice: 60000,
+            image: 60000,
+            status: 10000
+        };
     }
 
     setApiKey(key) {
@@ -32,7 +46,7 @@ export class NeticClient {
         const chatHistory = history !== null ? formatHistory(history) : this.history;
 
         try {
-            const response = await axios.post(this.baseUrl, { 
+            const response = await axios.post(this.endpoints.chat, { 
                 message, 
                 history: chatHistory 
             }, {
@@ -40,7 +54,7 @@ export class NeticClient {
                     Authorization: `Bearer ${this.apiKey}`,
                     "Content-Type": "application/json",
                 },
-                timeout: 30000,
+                timeout: this.timeout.chat,
             });
 
             // Mettre à jour l'historique si on utilise l'historique interne
@@ -76,17 +90,16 @@ export class NeticClient {
         }
 
         const chatHistory = history !== null ? formatHistory(history) : this.history;
-        const voiceUrl = this.baseUrl.replace('/chat', '/voice');
 
         try {
             const formData = createFormData({ message, audio, history: chatHistory });
 
-            const response = await axios.post(voiceUrl, formData, {
+            const response = await axios.post(this.endpoints.voice, formData, {
                 headers: {
                     Authorization: `Bearer ${this.apiKey}`,
                     ...formData.getHeaders(),
                 },
-                timeout: 60000, // Timeout plus long pour les fichiers audio
+                timeout: this.timeout.voice,
             });
 
             // Mettre à jour l'historique si on utilise l'historique interne
@@ -120,17 +133,17 @@ export class NeticClient {
             throw new Error("Image file is required for uploadImage");
         }
 
-        const imageUrl = this.baseUrl.replace('/chat', '/image');
+
 
         try {
             const formData = createImageFormData({ image, prompt });
 
-            const response = await axios.post(imageUrl, formData, {
+            const response = await axios.post(this.endpoints.image, formData, {
                 headers: {
                     Authorization: `Bearer ${this.apiKey}`,
                     ...formData.getHeaders(),
                 },
-                timeout: 60000, // Timeout plus long pour les uploads
+                timeout: this.timeout.image,
             });
 
             return response.data;
@@ -145,14 +158,12 @@ export class NeticClient {
      * @returns {Promise<Object>} Statut de l'API
      */
     async getImageStatus() {
-        const imageUrl = this.baseUrl.replace('/chat', '/image');
-
         try {
-            const response = await axios.get(imageUrl, {
+            const response = await axios.get(this.endpoints.image, {
                 headers: {
                     Authorization: `Bearer ${this.apiKey}`,
                 },
-                timeout: 10000,
+                timeout: this.timeout.status,
             });
 
             return response.data;
@@ -175,6 +186,53 @@ export class NeticClient {
      */
     getHistory() {
         return [...this.history];
+    }
+
+    /**
+     * Configure les timeouts pour les différentes requêtes
+     * @param {Object} timeouts - Objets avec les timeouts en millisecondes
+     * @param {number} [timeouts.chat=30000] - Timeout pour le chat
+     * @param {number} [timeouts.voice=60000] - Timeout pour la voix
+     * @param {number} [timeouts.image=60000] - Timeout pour les images
+     * @param {number} [timeouts.status=10000] - Timeout pour le statut
+     */
+    setTimeouts(timeouts) {
+        this.timeout = { ...this.timeout, ...timeouts };
+    }
+
+    /**
+     * Obtient des statistiques sur l'utilisation de l'API
+     * @returns {Promise<Object>} Statistiques d'utilisation
+     */
+    async getUsageStats() {
+        try {
+            const response = await axios.get(this.endpoints.usage, {
+                headers: {
+                    Authorization: `Bearer ${this.apiKey}`,
+                },
+                timeout: this.timeout.status,
+            });
+
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    }
+
+    /**
+     * Vérifie la validité de la clé API
+     * @returns {Promise<boolean>} True si la clé est valide
+     */
+    async validateApiKey() {
+        try {
+            await this.getImageStatus();
+            return true;
+        } catch (error) {
+            if (error.message.includes("Unauthorized")) {
+                return false;
+            }
+            throw error;
+        }
     }
 
     /**
@@ -243,4 +301,24 @@ export async function uploadImage(options, apiKey = null) {
 export async function getImageStatus(apiKey = null) {
     const client = new NeticClient(apiKey);
     return client.getImageStatus();
+}
+
+/**
+ * Obtient des statistiques sur l'utilisation de l'API (fonction utilitaire)
+ * @param {string} [apiKey] - Clé API (optionnel si configurée globalement)
+ * @returns {Promise<Object>} Statistiques d'utilisation
+ */
+export async function getUsageStats(apiKey = null) {
+    const client = new NeticClient(apiKey);
+    return client.getUsageStats();
+}
+
+/**
+ * Vérifie la validité de la clé API (fonction utilitaire)
+ * @param {string} [apiKey] - Clé API (optionnel si configurée globalement)
+ * @returns {Promise<boolean>} True si la clé est valide
+ */
+export async function validateApiKey(apiKey = null) {
+    const client = new NeticClient(apiKey);
+    return client.validateApiKey();
 }
